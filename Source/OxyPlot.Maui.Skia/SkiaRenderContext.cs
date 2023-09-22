@@ -363,7 +363,7 @@ namespace OxyPlot.Maui.Skia
             VerticalAlignment verticalAlignment = VerticalAlignment.Top,
             OxySize? maxSize = null)
         {
-            if (text == null || !fill.IsVisible())
+            if (text == null || fontFamily == null || !fill.IsVisible())
             {
                 return;
             }
