@@ -17,7 +17,9 @@
         Pressed,
         Moved,
         Released,
-        MouseWheel
+        MouseWheel,
+        LongPress,
+        DoubleTapped
     }
 
     public class TouchActionEventArgs : EventArgs

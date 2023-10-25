@@ -1,4 +1,5 @@
 using Microsoft.Maui.Controls.Platform;
+using Microsoft.UI.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Input;
 using OxyPlot.Maui.Skia.Effects;
@@ -7,28 +8,55 @@ namespace OxyPlot.Maui.Skia.Windows.Effects
 {
     public class PlatformTouchEffect : PlatformEffect
     {
-        FrameworkElement frameworkElement;
+        FrameworkElement view;
         Action<Microsoft.Maui.Controls.Element, TouchActionEventArgs> onTouchAction;
 
         protected override void OnAttached()
         {
             // Get the Windows FrameworkElement corresponding to the Element that the effect is attached to
-            frameworkElement = Control == null ? Container : Control;
+            view = Control == null ? Container : Control;
 
             // Get access to the TouchEffect class in the .NET Standard library
             var touchEffect = Element.Effects.OfType<MyTouchEffect>().FirstOrDefault();
 
-            if (touchEffect != null && frameworkElement != null)
+            if (touchEffect != null && view != null)
             {
                 // Save the method to call on touch events
                 onTouchAction = touchEffect.OnTouchAction;
 
                 // Set event handlers on FrameworkElement
-                frameworkElement.PointerPressed += OnPointerPressed;
-                frameworkElement.PointerMoved += OnPointerMoved;
-                frameworkElement.PointerReleased += OnPointerReleased;
-                frameworkElement.PointerWheelChanged += FrameworkElement_PointerWheelChanged;
+                view.PointerPressed += OnPointerPressed;
+                view.PointerMoved += OnPointerMoved;
+                view.PointerReleased += OnPointerReleased;
+                view.PointerWheelChanged += FrameworkElement_PointerWheelChanged;
+                view.DoubleTapped += OnDoubleTapped;
+                view.Holding += OnHolding;
             }
+        }
+
+        private void OnHolding(object sender, HoldingRoutedEventArgs args)
+        {
+            //Touch can produce a Holding action, but mouse devices generally can't.  
+            //see https://learn.microsoft.com/en-us/uwp/api/windows.ui.xaml.uielement.holding?view=winrt-22621
+
+            var windowsPoint = args.GetPosition(sender as UIElement);
+            var touchArgs = new TouchActionEventArgs(args.GetHashCode(),
+                TouchActionType.LongPress,
+                new Point[] { new(windowsPoint.X, windowsPoint.Y) },
+                args.HoldingState != HoldingState.Completed);
+
+            onTouchAction(Element, touchArgs);
+        }
+
+        private void OnDoubleTapped(object sender, DoubleTappedRoutedEventArgs args)
+        {
+            var windowsPoint = args.GetPosition(sender as UIElement);
+            var touchArgs = new TouchActionEventArgs(args.GetHashCode(),
+                TouchActionType.DoubleTapped,
+                new Point[] { new(windowsPoint.X, windowsPoint.Y) },
+                false);
+
+            onTouchAction(Element, touchArgs);
         }
 
         private void FrameworkElement_PointerWheelChanged(object sender, PointerRoutedEventArgs args)
@@ -40,10 +68,10 @@ namespace OxyPlot.Maui.Skia.Windows.Effects
         {
             if (onTouchAction != null)
             {
-                frameworkElement.PointerPressed -= OnPointerPressed;
-                frameworkElement.PointerMoved -= OnPointerMoved;
-                frameworkElement.PointerReleased -= OnPointerReleased;
-                frameworkElement.PointerWheelChanged -= FrameworkElement_PointerWheelChanged;
+                view.PointerPressed -= OnPointerPressed;
+                view.PointerMoved -= OnPointerMoved;
+                view.PointerReleased -= OnPointerReleased;
+                view.PointerWheelChanged -= FrameworkElement_PointerWheelChanged;
             }
         }
 

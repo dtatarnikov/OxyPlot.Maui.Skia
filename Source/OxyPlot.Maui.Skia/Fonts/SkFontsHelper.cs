@@ -12,9 +12,9 @@ internal static class SkFontsHelper
 #elif WINDOWS
          new Windows.MauiFontLoader();
 #elif MACCATALYST
-         new mac.MauiFontLoader();
+         new MacCatalyst.MauiFontLoader();
 #elif __IOS__
-         new OxyPlot.Maui.Skia.ios.MauiFontLoader();
+         new OxyPlot.Maui.Skia.iOS.MauiFontLoader();
 #else
         null;
 #endif

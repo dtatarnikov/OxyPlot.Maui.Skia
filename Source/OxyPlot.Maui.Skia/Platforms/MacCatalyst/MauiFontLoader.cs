@@ -1,6 +1,6 @@
 ﻿using OxyPlot.Maui.Skia.Fonts;
 
-namespace OxyPlot.Maui.Skia.mac;
+namespace OxyPlot.Maui.Skia.MacCatalyst;
 
 public class MauiFontLoader : IMauiFontLoader
 {

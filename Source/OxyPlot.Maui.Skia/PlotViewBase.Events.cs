@@ -5,6 +5,7 @@
 // --------------------------------------------------------------------------------------------------------------------
 
 using OxyPlot.Maui.Skia.Effects;
+using OxyPlot.Maui.Skia.Gestures;
 
 namespace OxyPlot.Maui.Skia
 {
@@ -41,9 +42,35 @@ namespace OxyPlot.Maui.Skia
                 case TouchActionType.MouseWheel:
                     OnMouseWheelEvent(e);
                     break;
+                case TouchActionType.LongPress:
+                    OnLongPressEvent(e);
+                    break;
+                case TouchActionType.DoubleTapped:
+                    OnDoubleTappedEvent(e);
+                    break;
                 default:
                     throw new ArgumentOutOfRangeException();
             }
+        }
+        
+        /// <summary>
+        /// Handles double tap events.
+        /// </summary>
+        /// <param name="e">The motion event arguments.</param>
+        /// <returns><c>true</c> if the event was handled.</returns>
+        private bool OnDoubleTappedEvent(TouchActionEventArgs e)
+        {
+            return this.ActualController.HandleGesture(this, new OxyDoubleTapGesture(), ToTouchEventArgs(e, Scale));
+        }
+        
+        /// <summary>
+        /// Handles long press events.
+        /// </summary>
+        /// <param name="e">The motion event arguments.</param>
+        /// <returns><c>true</c> if the event was handled.</returns>
+        private bool OnLongPressEvent(TouchActionEventArgs e)
+        {
+            return this.ActualController.HandleGesture(this, new OxyLongTapGesture(), ToTouchEventArgs(e, Scale));
         }
 
         /// <summary>

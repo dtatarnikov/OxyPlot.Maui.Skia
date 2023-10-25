@@ -1,6 +1,6 @@
 ﻿using OxyPlot.Maui.Skia.Fonts;
 
-namespace OxyPlot.Maui.Skia.ios;
+namespace OxyPlot.Maui.Skia.iOS;
 
 public class MauiFontLoader : IMauiFontLoader
 {

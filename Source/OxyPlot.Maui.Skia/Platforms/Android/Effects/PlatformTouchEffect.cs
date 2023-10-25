@@ -8,102 +8,36 @@ namespace OxyPlot.Maui.Skia.Droid.Effects
 {
     public class PlatformTouchEffect : PlatformEffect
     {
-        private Microsoft.Maui.Controls.Element _formsElement;
-        private Func<double, double> _fromPixels;
-        private MyTouchEffect libMyTouchEffect;
-        private View _view;
+        Action<Microsoft.Maui.Controls.Element, TouchActionEventArgs> onTouchAction;
+        View view;
 
         protected override void OnAttached()
         {
             // Get the Android View corresponding to the Element that the effect is attached to
-            _view = Control == null ? Container : Control;
+            view = Control == null ? Container : Control;
 
             // Get access to the TouchEffect class in the .NET Standard library
             var touchEffect = Element.Effects.OfType<MyTouchEffect>().FirstOrDefault();
 
-            if (touchEffect != null && _view != null)
+            if (touchEffect != null && view != null)
             {
-                ViewHolder.Add(_view, this);
-
-                _formsElement = Element;
-
-                libMyTouchEffect = touchEffect;
-
-                // Save fromPixels function
-                _fromPixels = _view.Context.FromPixels;
+                ViewHolder.Add(view, this);
+                
+                // Save the method to call on touch events
+                onTouchAction = touchEffect.OnTouchAction;
 
                 // Set event handler on View
-                _view.Touch += OnTouch;
+                view.SetOnTouchListener(new TouchListener(Element, this));
             }
         }
 
         protected override void OnDetached()
         {
-            if (ViewHolder.ContainsKey(_view))
+            if (ViewHolder.ContainsKey(view))
             {
-                ViewHolder.Remove(_view);
-                _view.Touch -= OnTouch;
+                ViewHolder.Remove(view);
+                view.SetOnTouchListener(null);
             }
-        }
-
-        private void OnTouch(object sender, View.TouchEventArgs args)
-        {
-            // Two object common to all the events
-            var senderView = sender as View;
-            var motionEvent = args.Event;
-
-            int[] twoIntArray = new int[2];
-            senderView.GetLocationOnScreen(twoIntArray);
-
-            var list = new List<Point>();
-            for (var pointerIndex = 0; pointerIndex < motionEvent.PointerCount; pointerIndex++)
-            {
-                list.Add(new Point(twoIntArray[0] + motionEvent.GetX(pointerIndex),
-                    twoIntArray[1] + motionEvent.GetY(pointerIndex)));
-            }
-
-            var screenPointerCoords = list.ToArray();
-            var id = motionEvent.GetPointerId(motionEvent.ActionIndex);
-
-            // Use ActionMasked here rather than Action to reduce the number of possibilities
-            switch (args.Event.ActionMasked)
-            {
-                case MotionEventActions.Down:
-                case MotionEventActions.PointerDown:
-                    FireEvent(this, id, TouchActionType.Pressed, screenPointerCoords, true);
-                    break;
-                case MotionEventActions.Move:
-                    FireEvent(this, id, TouchActionType.Moved, screenPointerCoords, true);
-                    break;
-                case MotionEventActions.Up:
-                case MotionEventActions.Pointer1Up:
-                    FireEvent(this, id, TouchActionType.Released, screenPointerCoords, false);
-                    break;
-            }
-        }
-
-        private void FireEvent(PlatformTouchEffect platformTouchEffect, int id, TouchActionType actionType, Point[] pointerLocations,
-            bool isInContact)
-        {
-            // Get the method to call for firing events
-            Action<Microsoft.Maui.Controls.Element, TouchActionEventArgs> onTouchAction =
-                platformTouchEffect.libMyTouchEffect.OnTouchAction;
-
-            // Get the location of the pointer within the view
-            int[] twoIntArray = new int[2];
-            platformTouchEffect._view.GetLocationOnScreen(twoIntArray);
-            List<Point> locations = new List<Point>();
-            foreach (var loc in pointerLocations)
-            {
-                var x = loc.X - twoIntArray[0];
-                var y = loc.Y - twoIntArray[1];
-                var point = new Point(_fromPixels(x), _fromPixels(y));
-                locations.Add(point);
-            }
-
-            // Call the method
-            onTouchAction(platformTouchEffect._formsElement,
-                new TouchActionEventArgs(id, actionType, locations.ToArray(), isInContact));
         }
 
         static class ViewHolder
@@ -125,7 +59,6 @@ namespace OxyPlot.Maui.Skia.Droid.Effects
             public static void Remove(View view)
             {
                 Shake();
-
                 _viewDic.Remove(view.GetHashCode());
             }
 
@@ -136,6 +69,107 @@ namespace OxyPlot.Maui.Skia.Droid.Effects
                     if (!_viewDic[key].IsAlive)
                         _viewDic.Remove(key);
                 }
+            }
+        }
+
+        class TouchListener : GestureDetector.SimpleOnGestureListener, View.IOnTouchListener
+        {
+            /// <summary>
+            /// the gesture detector used for detecting taps and long-presses, ...
+            /// </summary>
+            private readonly GestureDetector _gestureDetector;
+            
+            Microsoft.Maui.Controls.Element _element;        // Forms element for firing events
+            private readonly PlatformTouchEffect _effect;
+
+            private Point[] _screenPointerCoords;
+            private int _pointerId;
+
+            /// <summary>
+            /// Constructor
+            /// </summary>
+            public TouchListener(Microsoft.Maui.Controls.Element element, PlatformTouchEffect eff)
+            {
+                _element = element;
+                _effect = eff;
+
+                _gestureDetector = new GestureDetector(eff.view.Context, this);
+            }
+
+            /// <inheritdoc />
+            public bool OnTouch(View v, MotionEvent e)
+            {
+                // Two object common to all the events
+                int[] twoIntArray = new int[2];
+                v.GetLocationOnScreen(twoIntArray);
+
+                var list = new List<Point>();
+                for (var pointerIndex = 0; pointerIndex < e.PointerCount; pointerIndex++)
+                {
+                    list.Add(new Point(twoIntArray[0] + e.GetX(pointerIndex),
+                        twoIntArray[1] + e.GetY(pointerIndex)));
+                }
+
+                _screenPointerCoords = list.ToArray();
+                _pointerId = e.GetPointerId(e.ActionIndex);
+            
+                // Use ActionMasked here rather than Action to reduce the number of possibilities
+                switch (e.ActionMasked)
+                {
+                    case MotionEventActions.Down:
+                    case MotionEventActions.PointerDown:
+                        FireEvent(TouchActionType.Pressed, true);
+                        break;
+                    case MotionEventActions.Move:
+                        FireEvent(TouchActionType.Moved, true);
+                        break;
+                }
+
+                _gestureDetector.OnTouchEvent(e);
+
+                switch (e.ActionMasked)
+                {
+                    case MotionEventActions.Up:
+                    case MotionEventActions.Pointer1Up:
+                        FireEvent(TouchActionType.Released, false);
+                        break;
+                }
+
+                return true; // indicate event was handled
+            }
+            
+            /// <inheritdoc />
+            public override void OnLongPress(MotionEvent e)
+            {
+                FireEvent(TouchActionType.LongPress, e.ActionMasked == MotionEventActions.Down);
+            }
+            
+            /// <inheritdoc />
+            public override bool OnDoubleTap(MotionEvent e)
+            {
+                FireEvent(TouchActionType.DoubleTapped, false);
+
+                return true;
+            }
+            
+            private void FireEvent(TouchActionType actionType, bool isInContact)
+            {
+                // Get the location of the pointer within the view
+                int[] twoIntArray = new int[2];
+                _effect.view.GetLocationOnScreen(twoIntArray);
+                Func<double, double> pointerFunc = _effect.view.Context.FromPixels;
+                List<Point> locations = new List<Point>();
+                foreach (var loc in _screenPointerCoords)
+                {
+                    var x = loc.X - twoIntArray[0];
+                    var y = loc.Y - twoIntArray[1];
+                    var point = new Point(pointerFunc(x), pointerFunc(y));
+                    locations.Add(point);
+                }
+
+                // Call the method
+                _effect.onTouchAction(_element,
+                    new TouchActionEventArgs(_pointerId, actionType, locations.ToArray(), isInContact));
             }
         }
 
@@ -154,7 +188,6 @@ namespace OxyPlot.Maui.Skia.Droid.Effects
                 _weakView = new WeakReference(view);
                 _weakTouchEffect = new WeakReference(eff);
             }
-
         }
     }
 }
