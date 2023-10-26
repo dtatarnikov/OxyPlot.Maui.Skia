@@ -89,10 +89,10 @@ namespace OxyPlot.Maui.Skia.iOS.Effects
 
                 viewDictionary.Remove(view);
             }
-
+            
             private void OnDoubleTap(UITapGestureRecognizer recognizer)
             {
-                if (recognizer.State != UIGestureRecognizerState.Recognized)
+                if (recognizer.State != UIGestureRecognizerState.Recognized || !view.UserInteractionEnabled)
                     return;
                 
                 long id = ((IntPtr)recognizer.Handle).ToInt64();
@@ -106,7 +106,7 @@ namespace OxyPlot.Maui.Skia.iOS.Effects
             
             private void OnLongPress(UILongPressGestureRecognizer recognizer)
             {
-                if (recognizer.State != UIGestureRecognizerState.Recognized)
+                if (recognizer.State != UIGestureRecognizerState.Recognized || !view.UserInteractionEnabled)
                     return;
                 
                 long id = ((IntPtr)recognizer.Handle).ToInt64();
