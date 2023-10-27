@@ -21,7 +21,7 @@ namespace OxyPlot.Maui.Skia
 
         private void AddTouchEffect()
         {
-            var touchEffect = new MyTouchEffect();
+            var touchEffect = new MyTouchEffect { HitFrameEnabled = this.HitFrameEnabled };
             touchEffect.TouchAction += TouchEffect_TouchAction;
             if (!InputTransparent)
             {
@@ -29,22 +29,26 @@ namespace OxyPlot.Maui.Skia
             }
             this.PropertyChanged += (_, args) =>
             {
-                if (args.PropertyName is null) return;
-                if (args.PropertyName != nameof(InputTransparent)) return;
-                if (InputTransparent)
+                if (args.PropertyName == nameof(HitFrameEnabled))
                 {
-                    if (this.Effects.Contains(touchEffect))
-                    {
-                        this.Effects.Remove(touchEffect);
-                    }
+                    touchEffect.HitFrameEnabled = this.HitFrameEnabled;
                 }
-                else
+                else if (args.PropertyName == nameof(InputTransparent))
                 {
-                    if (!this.Effects.Contains(touchEffect))
+                    if (InputTransparent)
                     {
-                        this.Effects.Add(touchEffect);
+                        if (this.Effects.Contains(touchEffect))
+                        {
+                            this.Effects.Remove(touchEffect);
+                        }
                     }
-                    
+                    else
+                    {
+                        if (!this.Effects.Contains(touchEffect))
+                        {
+                            this.Effects.Add(touchEffect);
+                        }
+                    }
                 }
             };
         }

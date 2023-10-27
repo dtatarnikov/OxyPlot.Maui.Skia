@@ -8,7 +8,7 @@ namespace OxyPlot.Maui.Skia.Droid.Effects
 {
     public class PlatformTouchEffect : PlatformEffect
     {
-        Action<Microsoft.Maui.Controls.Element, TouchActionEventArgs> onTouchAction;
+        MyTouchEffect touchEffect;
         View view;
 
         protected override void OnAttached()
@@ -17,15 +17,10 @@ namespace OxyPlot.Maui.Skia.Droid.Effects
             view = Control == null ? Container : Control;
 
             // Get access to the TouchEffect class in the .NET Standard library
-            var touchEffect = Element.Effects.OfType<MyTouchEffect>().FirstOrDefault();
+            touchEffect = Element.Effects.OfType<MyTouchEffect>().FirstOrDefault();
 
             if (touchEffect != null && view != null)
             {
-                ViewHolder.Add(view, this);
-                
-                // Save the method to call on touch events
-                onTouchAction = touchEffect.OnTouchAction;
-
                 // Set event handler on View
                 view.SetOnTouchListener(new TouchListener(Element, this));
             }
@@ -33,42 +28,9 @@ namespace OxyPlot.Maui.Skia.Droid.Effects
 
         protected override void OnDetached()
         {
-            if (ViewHolder.ContainsKey(view))
+            if (touchEffect != null && view != null)
             {
-                ViewHolder.Remove(view);
                 view.SetOnTouchListener(null);
-            }
-        }
-
-        static class ViewHolder
-        {
-            private static readonly Dictionary<int, WeakViewTouchEffectPair> _viewDic = new();
-
-            public static bool ContainsKey(View view)
-            {
-                Shake();
-                return _viewDic.ContainsKey(view.GetHashCode());
-            }
-
-            public static void Add(View view, PlatformTouchEffect eff)
-            {
-                Shake();
-                _viewDic[view.GetHashCode()] = new WeakViewTouchEffectPair(view, eff);
-            }
-
-            public static void Remove(View view)
-            {
-                Shake();
-                _viewDic.Remove(view.GetHashCode());
-            }
-
-            private static void Shake()
-            {
-                foreach (var key in _viewDic.Keys.ToArray())
-                {
-                    if (!_viewDic[key].IsAlive)
-                        _viewDic.Remove(key);
-                }
             }
         }
 
@@ -103,13 +65,18 @@ namespace OxyPlot.Maui.Skia.Droid.Effects
                 int[] twoIntArray = new int[2];
                 v.GetLocationOnScreen(twoIntArray);
 
+                var frame = new Rect(twoIntArray[0], twoIntArray[1], v.Width, v.Height);
+
                 var list = new List<Point>();
                 for (var pointerIndex = 0; pointerIndex < e.PointerCount; pointerIndex++)
                 {
-                    list.Add(new Point(twoIntArray[0] + e.GetX(pointerIndex),
-                        twoIntArray[1] + e.GetY(pointerIndex)));
-                }
+                    var p = new Point(twoIntArray[0] + e.GetX(pointerIndex), twoIntArray[1] + e.GetY(pointerIndex));
+                    if (CheckForBoundary(frame, p))
+                        continue;
 
+                    list.Add(p);
+                }
+                
                 _screenPointerCoords = list.ToArray();
                 _pointerId = e.GetPointerId(e.ActionIndex);
             
@@ -152,8 +119,16 @@ namespace OxyPlot.Maui.Skia.Droid.Effects
                 return true;
             }
             
+            bool CheckForBoundary(Rect frame, Point point)
+            {
+                return _effect.touchEffect.HitFrameEnabled && !frame.Contains(point);
+            }
+
             private void FireEvent(TouchActionType actionType, bool isInContact)
             {
+                if (_screenPointerCoords.Length <= 0)
+                    return;
+
                 // Get the location of the pointer within the view
                 int[] twoIntArray = new int[2];
                 _effect.view.GetLocationOnScreen(twoIntArray);
@@ -168,25 +143,8 @@ namespace OxyPlot.Maui.Skia.Droid.Effects
                 }
 
                 // Call the method
-                _effect.onTouchAction(_element,
+                _effect.touchEffect.OnTouchAction(_element,
                     new TouchActionEventArgs(_pointerId, actionType, locations.ToArray(), isInContact));
-            }
-        }
-
-        class WeakViewTouchEffectPair
-        {
-            private readonly WeakReference _weakView;
-            public View View => _weakView.Target as View;
-
-            public bool IsAlive => _weakTouchEffect.IsAlive && _weakView.IsAlive;
-
-            private readonly WeakReference _weakTouchEffect;
-            public PlatformTouchEffect TouchEffect => _weakTouchEffect.Target as PlatformTouchEffect;
-
-            public WeakViewTouchEffectPair(View view, PlatformTouchEffect eff)
-            {
-                _weakView = new WeakReference(view);
-                _weakTouchEffect = new WeakReference(eff);
             }
         }
     }

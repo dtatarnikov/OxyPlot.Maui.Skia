@@ -9,7 +9,7 @@ namespace OxyPlot.Maui.Skia.Windows.Effects
     public class PlatformTouchEffect : PlatformEffect
     {
         FrameworkElement view;
-        Action<Microsoft.Maui.Controls.Element, TouchActionEventArgs> onTouchAction;
+        MyTouchEffect touchEffect;
 
         protected override void OnAttached()
         {
@@ -17,13 +17,10 @@ namespace OxyPlot.Maui.Skia.Windows.Effects
             view = Control == null ? Container : Control;
 
             // Get access to the TouchEffect class in the .NET Standard library
-            var touchEffect = Element.Effects.OfType<MyTouchEffect>().FirstOrDefault();
+            touchEffect = Element.Effects.OfType<MyTouchEffect>().FirstOrDefault();
 
             if (touchEffect != null && view != null)
             {
-                // Save the method to call on touch events
-                onTouchAction = touchEffect.OnTouchAction;
-
                 // Set event handlers on FrameworkElement
                 view.PointerPressed += OnPointerPressed;
                 view.PointerMoved += OnPointerMoved;
@@ -31,6 +28,17 @@ namespace OxyPlot.Maui.Skia.Windows.Effects
                 view.PointerWheelChanged += FrameworkElement_PointerWheelChanged;
                 view.DoubleTapped += OnDoubleTapped;
                 view.Holding += OnHolding;
+            }
+        }
+        
+        protected override void OnDetached()
+        {
+            if (touchEffect != null && view != null)
+            {
+                view.PointerPressed -= OnPointerPressed;
+                view.PointerMoved -= OnPointerMoved;
+                view.PointerReleased -= OnPointerReleased;
+                view.PointerWheelChanged -= FrameworkElement_PointerWheelChanged;
             }
         }
 
@@ -45,7 +53,7 @@ namespace OxyPlot.Maui.Skia.Windows.Effects
                 new Point[] { new(windowsPoint.X, windowsPoint.Y) },
                 args.HoldingState != HoldingState.Completed);
 
-            onTouchAction(Element, touchArgs);
+            touchEffect.OnTouchAction(Element, touchArgs);
         }
 
         private void OnDoubleTapped(object sender, DoubleTappedRoutedEventArgs args)
@@ -56,23 +64,12 @@ namespace OxyPlot.Maui.Skia.Windows.Effects
                 new Point[] { new(windowsPoint.X, windowsPoint.Y) },
                 false);
 
-            onTouchAction(Element, touchArgs);
+            touchEffect.OnTouchAction(Element, touchArgs);
         }
 
         private void FrameworkElement_PointerWheelChanged(object sender, PointerRoutedEventArgs args)
         {
             CommonHandler(sender, TouchActionType.MouseWheel, args);
-        }
-
-        protected override void OnDetached()
-        {
-            if (onTouchAction != null)
-            {
-                view.PointerPressed -= OnPointerPressed;
-                view.PointerMoved -= OnPointerMoved;
-                view.PointerReleased -= OnPointerReleased;
-                view.PointerWheelChanged -= FrameworkElement_PointerWheelChanged;
-            }
         }
 
         private bool _pressed = false;
@@ -111,7 +108,7 @@ namespace OxyPlot.Maui.Skia.Windows.Effects
                 touchArgs.MouseWheelDelta = pointerPoint.Properties.MouseWheelDelta;
             }
 
-            onTouchAction(Element, touchArgs);
+            touchEffect.OnTouchAction(Element, touchArgs);
         }
     }
 }

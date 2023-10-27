@@ -42,6 +42,12 @@ namespace OxyPlot.Maui.Skia
         public static readonly BindableProperty ZoomRectangleTemplateProperty =
             BindableProperty.Create(
                 nameof(ZoomRectangleTemplate), typeof(ControlTemplate), typeof(PlotViewBase));
+        
+        /// <summary>
+        /// Identifies the <see cref="HitFrameEnabledProperty"/> dependency property.
+        /// </summary>
+        public static readonly BindableProperty HitFrameEnabledProperty =
+            BindableProperty.Create(nameof(HitFrameEnabled), typeof(bool), typeof(PlotViewBase), true);
 
         /// <summary>
         /// Gets or sets the Plot controller.
@@ -90,5 +96,16 @@ namespace OxyPlot.Maui.Skia
             get => (ControlTemplate)this.GetValue(ZoomRectangleTemplateProperty);
             set => this.SetValue(ZoomRectangleTemplateProperty, value);
         }
+
+        /// <summary>
+        /// Is hit test within boundary enabled.
+        /// Note! Default behaviour for Windows is true - touches do not work outside boundary.
+        /// </summary>
+        public bool HitFrameEnabled
+        {
+            get => (bool)this.GetValue(HitFrameEnabledProperty);
+            set => this.SetValue(HitFrameEnabledProperty, value);
+        }
+
     }
 }

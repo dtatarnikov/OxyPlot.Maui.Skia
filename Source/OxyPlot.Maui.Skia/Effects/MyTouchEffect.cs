@@ -4,6 +4,8 @@
     {
         public event TouchActionEventHandler TouchAction;
 
+        public bool HitFrameEnabled { get; set; }
+
         public void OnTouchAction(Microsoft.Maui.Controls.Element element, TouchActionEventArgs args)
         {
             TouchAction?.Invoke(element, args);
