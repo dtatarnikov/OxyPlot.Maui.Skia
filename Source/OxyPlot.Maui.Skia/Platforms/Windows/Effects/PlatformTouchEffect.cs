@@ -39,6 +39,8 @@ namespace OxyPlot.Maui.Skia.Windows.Effects
                 view.PointerMoved -= OnPointerMoved;
                 view.PointerReleased -= OnPointerReleased;
                 view.PointerWheelChanged -= FrameworkElement_PointerWheelChanged;
+                view.DoubleTapped -= OnDoubleTapped;
+                view.Holding -= OnHolding;
             }
         }
 
