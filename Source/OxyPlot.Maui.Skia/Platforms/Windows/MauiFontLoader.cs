@@ -27,7 +27,6 @@ public class MauiFontLoader : IMauiFontLoader
         catch (Exception e)
         {
             Console.WriteLine(e);
-            return null;
         }
 
         return null;
