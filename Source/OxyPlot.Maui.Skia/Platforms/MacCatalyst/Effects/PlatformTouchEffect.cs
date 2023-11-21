@@ -124,10 +124,13 @@ namespace OxyPlot.Maui.Skia.MacCatalyst.Effects
 
             bool CheckForBoundary(UITouch touch)
             {
+                if (!effect.touchEffect.HitFrameEnabled)
+                    return false;
+
                 var point = touch.LocationInView(View);
                 var frame = new CGRect(new CGPoint(), View.Frame.Size);
 
-                return effect.touchEffect.HitFrameEnabled && !frame.Contains(point);
+                return !frame.Contains(point);
             }
 
             private void FireEvent(IEnumerable<UITouch> touches, UIEvent evt, TouchActionType actionType, bool isInContact)
